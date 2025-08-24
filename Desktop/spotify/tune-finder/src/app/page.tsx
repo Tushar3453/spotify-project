@@ -7,6 +7,7 @@ interface Song {
   id: string;
   name: string;
   artist: string;
+  artistId:string;
   albumArt: string;
   spotifyUrl: string; 
   releaseYear: number;
@@ -77,7 +78,7 @@ export default function App() {
 
   const handleSelectSong = (song: Song) => {
     setSelectedSong(song);
-    setSearchQuery(song.name); 
+    setSearchQuery(song.name);
     setSearchResults([]); 
   };
 
@@ -85,7 +86,7 @@ export default function App() {
     if (!selectedSong) return;
     setIsLoading(true);
     setShowRecommendations(true);
-    fetch(`/api/recommendations?trackName=${selectedSong.name}&artistName=${selectedSong.artist}`)
+    fetch(`/api/recommendations?trackName=${selectedSong.name}&artistName=${selectedSong.artist}&artistId=${selectedSong.artistId}&releaseYear=${selectedSong.releaseYear}`)
       .then(res => {
         if (!res.ok) throw new Error('Network response was not ok');
         return res.json();

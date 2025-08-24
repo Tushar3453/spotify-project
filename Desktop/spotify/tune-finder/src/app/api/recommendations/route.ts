@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Spotify credentials
 const client_id = process.env.SPOTIFY_CLIENT_ID;
 const client_secret = process.env.SPOTIFY_CLIENT_SECRET;
-const geminiApiKey = process.env.GEMINI_API_KEY;
-
 const basic = Buffer.from(`${client_id}:${client_secret}`).toString('base64');
 const TOKEN_ENDPOINT = `https://accounts.spotify.com/api/token`;
 const API_BASE = `https://api.spotify.com/v1`;
 
+// Last.fm credentials
+const LASTFM_API_KEY = process.env.LASTFM_API_KEY;
+
+// Type for the queries we build
 type SongQuery = { songName: string; artistName: string };
 
 // Helper to get Spotify Access Token
@@ -36,76 +39,94 @@ const formatSongData = (item: any) => {
     };
 };
 
+// Helper function to shuffle an array
+function shuffleArray(array: any[]) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
+
 export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const trackName = searchParams.get('trackName');
     const artistName = searchParams.get('artistName');
+    const artistId = searchParams.get('artistId');
+    const releaseYearParam = searchParams.get('releaseYear');
 
-    if (!trackName || !artistName) {
-        return NextResponse.json({ error: 'Both trackName and artistName are required' }, { status: 400 });
+    if (!trackName || !artistName || !artistId || !releaseYearParam) {
+        return NextResponse.json({ error: 'All parameters are required' }, { status: 400 });
     }
 
     try {
-        // --- Step 1: Get Recommendations from Gemini ---
-        const prompt = `Give me a list of 10 songs that are musically and thematically similar to '${trackName}' by '${artistName}'. Provide the response as a numbered list with only the song name and artist name, like "1. Song Name - Artist Name".`;
-        const geminiApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
+        let songQueries: SongQuery[] = [];
+        const primaryArtist = artistName.split(',')[0].trim(); // Use only the first artist for Last.fm
 
-        const geminiResponse = await fetch(geminiApiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-        });
-
-        if (!geminiResponse.ok) throw new Error("Failed to get response from Gemini");
-
-        const geminiData = await geminiResponse.json();
-        const recommendationsText = geminiData.candidates[0]?.content?.parts[0]?.text;
-
-        if (!recommendationsText) {
-            throw new Error("Gemini returned an empty response.");
+        // --- Plan A: Try Last.fm First ---
+        const lastFmUrl = `https://ws.audioscrobbler.com/2.0/?method=track.getsimilar&artist=${encodeURIComponent(primaryArtist)}&track=${encodeURIComponent(trackName)}&limit=50&api_key=${LASTFM_API_KEY}&format=json`;
+        const fmResponse = await fetch(lastFmUrl);
+        if (fmResponse.ok) {
+            const fmData = await fmResponse.json();
+            if (fmData.similartracks?.track?.length > 0) {
+                console.log("Successfully fetched from Last.fm");
+                songQueries = fmData.similartracks.track.map((track: any) => ({
+                    songName: track.name,
+                    artistName: track.artist.name,
+                }));
+            }
         }
 
-        // --- Step 2: Parse Gemini's Text Response ---
-        const songQueries = recommendationsText
-            .split('\n')
-            .map((line: string) => {
-                const match = line.match(/\d+\.\s*(.*?)\s*-\s*(.*)/);
-                return match ? { songName: match[1].trim(), artistName: match[2].trim() } : null;
-            })
-            .filter((q: SongQuery | null): q is SongQuery => q !== null);
-
-        if (songQueries.length === 0) {
-            return NextResponse.json([]);
-        }
-
-        // --- Step 3: Fetch Full Song Details from Spotify ---
         const spotifyAccessToken = await getSpotifyAccessToken();
         const authHeader = { Authorization: `Bearer ${spotifyAccessToken}` };
+        
+        // --- Plan B: If Last.fm fails, use Spotify Genre Search ---
+        if (songQueries.length === 0) {
+            console.log("Last.fm failed. Using Spotify Genre Fallback.");
+            const artistResponse = await fetch(`${API_BASE}/artists/${artistId}`, { headers: authHeader });
+            if (artistResponse.ok) {
+                const artistData = await artistResponse.json();
+                if (artistData.genres?.length > 0) {
+                    const genre = artistData.genres[0];
+                    const originalYear = parseInt(releaseYearParam);
+                    const startYear = originalYear - 7;
+                    const endYear = new Date().getFullYear();
+                    const searchQuery = `genre:"${genre}" year:${startYear}-${endYear}`;
+                    const marketQuery = artistData.genres.some((g: string) => g.includes('filmi') || g.includes('desi')) ? '&market=IN' : '';
 
-        // Explicitly typing 'query' here solves the implicit 'any' error in this block.
-        const spotifySearchPromises = songQueries.map((query: { songName: string, artistName: string }) => {
+                    const searchResponse = await fetch(`${API_BASE}/search?q=${encodeURIComponent(searchQuery)}&type=track&limit=50&offset=${Math.floor(Math.random() * 201)}${marketQuery}`, { headers: authHeader });
+                    if (searchResponse.ok) {
+                        const searchData = await searchResponse.json();
+                        songQueries = searchData.tracks.items.map((track: any) => ({
+                            songName: track.name,
+                            artistName: track.artists[0].name
+                        }));
+                    }
+                }
+            }
+        }
+
+        if (songQueries.length === 0) {
+             console.log("All methods failed. Returning empty.");
+             return NextResponse.json([]);
+        }
+
+        // --- Final Step: Fetch details from Spotify ---
+        const spotifySearchPromises = songQueries.map(query => {
             const searchQuery = `track:"${query.songName}" artist:"${query.artistName}"`;
             return fetch(`${API_BASE}/search?q=${encodeURIComponent(searchQuery)}&type=track&limit=1`, { headers: authHeader })
-                .then(res => res.ok ? res.json() : Promise.resolve(null))
+                .then(res => res.ok ? res.json() : null)
                 .then(data => data?.tracks?.items?.[0] || null)
-                .catch(e => {
-                    console.error(`Spotify search failed for "${query.songName}":`, e);
-                    return null;
-                });
+                .catch(() => null);
         });
 
         const spotifyResults = await Promise.all(spotifySearchPromises);
-
-        // --- Step 4: Format and Send Final Response ---
-        const finalRecommendations = spotifyResults
-            .filter(Boolean)
-            .map(formatSongData)
-            .filter(Boolean);
-
-        return NextResponse.json(finalRecommendations);
+        const finalRecommendations = spotifyResults.filter(Boolean).map(formatSongData).filter(Boolean);
+        
+        return NextResponse.json(shuffleArray(finalRecommendations).slice(0, 10));
 
     } catch (error) {
-        console.error("Internal server error in recommendations route:", error);
+        console.error("Internal server error:", error);
         return NextResponse.json({ error: 'Failed to fetch recommendations' }, { status: 500 });
     }
 }

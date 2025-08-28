@@ -98,7 +98,7 @@ export default function App() {
 
   return (
     <div className="bg-gray-900 min-h-screen text-white font-sans">
-      <div className="max-w-3xl mx-auto w-full px-4 pt-12 sm:pt-20">
+      <div className="max-w-5xl mx-auto px-4 pt-8 sm:pt-12 pb-12 sm:pb-20">
         <header className="text-center mb-8">
           <h1 className="text-4xl sm:text-5xl font-bold text-green-400">TuneFinder</h1>
           <p className="text-gray-400 mt-2">Discover new music based on your favorite tracks.</p>

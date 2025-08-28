@@ -88,7 +88,7 @@ export default function TopTracksPage() {
 
     return (
         <div className="bg-gray-900 min-h-screen text-white font-sans">
-            <div className="max-w-4xl mx-auto px-4 py-12 sm:py-20">
+            <div className="max-w-5xl mx-auto px-4 pt-8 sm:pt-12 pb-12 sm:pb-20">
                 <header className="text-center mb-10">
                     <h1 className="text-4xl sm:text-5xl font-bold tracking-tight">Your Top Tracks</h1>
                     <p className="text-gray-400 mt-2">The songs you’ve had on repeat.</p>

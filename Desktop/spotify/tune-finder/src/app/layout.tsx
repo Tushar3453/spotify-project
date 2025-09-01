@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TuneFinder",
+  title: "SoundSphere",
   description: "Discover new music",
 };
 

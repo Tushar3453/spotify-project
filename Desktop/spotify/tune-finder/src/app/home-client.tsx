@@ -32,7 +32,7 @@ export default function HomeClient() {
                         Explore Your Music
                     </h1>
                     <p className="text-gray-400 mt-4 max-w-2xl mx-auto">
-                        Discover new tracks with our AI recommender or dive deep into your personal listening habits.
+                        Discover new tracks with our smart music recommender or dive deep into your personal listening habits.
                     </p>
                 </header>
                 <main className="pb-16">

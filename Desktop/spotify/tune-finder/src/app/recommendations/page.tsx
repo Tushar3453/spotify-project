@@ -100,8 +100,8 @@ export default function App() {
     <div className="bg-gray-900 min-h-screen text-white font-sans">
       <div className="max-w-5xl mx-auto px-4 pt-8 sm:pt-12 pb-12 sm:pb-20">
         <header className="text-center mb-8">
-          <h1 className="text-4xl sm:text-5xl font-bold text-green-400">TuneFinder</h1>
-          <p className="text-gray-400 mt-2">Discover new music based on your favorite tracks.</p>
+          <h1 className="text-4xl sm:text-5xl font-bold text-green-400">Songs You’ll Love</h1>
+          <p className="text-gray-400 mt-2">Type a song, we’ll find you more.</p>
         </header>
 
         <div className="relative">
@@ -139,10 +139,6 @@ export default function App() {
             </div>
           </main>
         )}
-        
-        <footer className="text-center mt-8 text-gray-500 text-sm pb-10">
-            <p>Powered by Next.js & Tailwind CSS.</p>
-        </footer>
       </div>
     </div>
   );

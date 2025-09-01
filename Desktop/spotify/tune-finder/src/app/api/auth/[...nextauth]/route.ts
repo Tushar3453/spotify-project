@@ -9,7 +9,9 @@ const scopes = [
     "user-modify-playback-state",
     "user-read-playback-state",
     "user-read-recently-played",
-    "user-top-read"
+    "user-top-read",
+    "playlist-modify-public",
+    "playlist-modify-private"
 ].join(",");
 
 

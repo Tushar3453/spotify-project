@@ -1,5 +1,3 @@
-// File: src/app/api/search/route.ts
-
 import { NextRequest, NextResponse } from 'next/server';
 
 const client_id = process.env.SPOTIFY_CLIENT_ID;
@@ -20,6 +18,30 @@ const getAccessToken = async () => {
   return response.json();
 };
 
+// Spotify API response types
+interface SpotifyArtist {
+  name: string;
+}
+
+interface SpotifyAlbum {
+  images: { url: string }[];
+  release_date: string;
+}
+
+interface SpotifyTrack {
+  id: string;
+  name: string;
+  artists: SpotifyArtist[];
+  album: SpotifyAlbum;
+  external_urls: { spotify: string };
+}
+
+interface SpotifySearchResponse {
+  tracks: {
+    items: SpotifyTrack[];
+  };
+}
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const query = searchParams.get('q');
@@ -37,20 +59,19 @@ export async function GET(req: NextRequest) {
     });
 
     if (!response.ok) throw new Error('Failed to fetch from Spotify');
-    
-    const data = await response.json();
-    
-    const items = data.tracks.items.map((item: any) => ({
+
+    const data: SpotifySearchResponse = await response.json();
+
+    const items = data.tracks.items.map((item) => ({
       id: item.id,
       name: item.name,
-      artist: item.artists.map((_artist: any) => _artist.name).join(', '),
+      artist: item.artists.map((artist) => artist.name).join(', '),
       albumArt: item.album.images[0]?.url,
       spotifyUrl: item.external_urls.spotify,
       releaseYear: parseInt(item.album.release_date.split('-')[0]),
     }));
 
     return NextResponse.json(items);
-
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: 'Failed to fetch data from Spotify' }, { status: 500 });

@@ -3,6 +3,10 @@
 
 import React from 'react';
 
+type HomeClientProps = {
+  isLoggedIn: boolean;
+};
+
 // --- SVG ICONS ---
 const TopTracksIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mb-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM18 16c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" /></svg> );
 const TopArtistsIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mb-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg> );
@@ -23,7 +27,7 @@ function FeatureCard({ icon, title, description, href, isLoginRequired = false }
 }
 
 // --- Main Homepage UI Component ---
-export default function HomeClient() {
+export default function HomeClient({}: HomeClientProps) {
     return (
         <div className="bg-gray-900">
             <div className="max-w-5xl mx-auto px-4">

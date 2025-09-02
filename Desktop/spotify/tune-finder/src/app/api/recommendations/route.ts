@@ -7,6 +7,32 @@ const TOKEN_ENDPOINT = `https://accounts.spotify.com/api/token`;
 const API_BASE = `https://api.spotify.com/v1`;
 const LASTFM_API_KEY = process.env.LASTFM_API_KEY;
 
+// Type definitions for API responses
+interface SpotifyArtist {
+    id: string;
+    name: string;
+}
+
+interface SpotifyTrack {
+    id: string;
+    name: string;
+    artists: SpotifyArtist[];
+    album: {
+        images: { url: string }[];
+        release_date: string;
+    };
+    external_urls: {
+        spotify: string;
+    };
+}
+
+interface LastFmTrack {
+    name: string;
+    artist: {
+        name: string;
+    };
+}
+
 // Type for the queries we build
 type SongQuery = { songName: string; artistName: string };
 
@@ -23,12 +49,12 @@ const getSpotifyAccessToken = async () => {
 };
 
 // Helper to format song data from Spotify
-const formatSongData = (item: any) => {
+const formatSongData = (item: SpotifyTrack) => {
     if (!item || !item.album || !item.artists || !item.artists.length || !item.album.release_date) return null;
     return {
         id: item.id,
         name: item.name,
-        artist: item.artists.map((a: any) => a.name).join(', '),
+        artist: item.artists.map((a: SpotifyArtist) => a.name).join(', '),
         artistId: item.artists[0].id,
         albumArt: item.album.images[0]?.url,
         spotifyUrl: item.external_urls.spotify,
@@ -37,7 +63,7 @@ const formatSongData = (item: any) => {
 };
 
 // Helper function to shuffle an array
-function shuffleArray(array: any[]) {
+function shuffleArray<T>(array: T[]): T[] {
     for (let i = array.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [array[i], array[j]] = [array[j], array[i]];
@@ -67,7 +93,7 @@ export async function GET(req: NextRequest) {
             const fmData = await fmResponse.json();
             if (fmData.similartracks?.track?.length > 0) {
                 console.log("Successfully fetched from Last.fm");
-                songQueries = fmData.similartracks.track.map((track: any) => ({
+                songQueries = fmData.similartracks.track.map((track: LastFmTrack) => ({
                     songName: track.name,
                     artistName: track.artist.name,
                 }));
@@ -94,7 +120,7 @@ export async function GET(req: NextRequest) {
                     const searchResponse = await fetch(`${API_BASE}/search?q=${encodeURIComponent(searchQuery)}&type=track&limit=50&offset=${Math.floor(Math.random() * 201)}${marketQuery}`, { headers: authHeader });
                     if (searchResponse.ok) {
                         const searchData = await searchResponse.json();
-                        songQueries = searchData.tracks.items.map((track: any) => ({
+                        songQueries = searchData.tracks.items.map((track: SpotifyTrack) => ({
                             songName: track.name,
                             artistName: track.artists[0].name
                         }));

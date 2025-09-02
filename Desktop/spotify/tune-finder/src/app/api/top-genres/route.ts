@@ -1,9 +1,12 @@
-// File: src/app/api/top-genres/route.ts
-
 import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
 const TOP_ARTISTS_ENDPOINT = `https://api.spotify.com/v1/me/top/artists`;
+
+// Minimal type for Spotify Artist (only what we need here)
+type SpotifyArtist = {
+  genres: string[];
+};
 
 export async function GET(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
@@ -30,10 +33,10 @@ export async function GET(req: NextRequest) {
     const data = await response.json();
 
     if (!data.items || data.items.length === 0) {
-        return NextResponse.json([]);
+      return NextResponse.json([]);
     }
 
-    const allGenres = data.items.flatMap((artist: any) => artist.genres);
+    const allGenres = (data.items as SpotifyArtist[]).flatMap((artist) => artist.genres);
 
     // counting genres
     const genreCounts = allGenres.reduce((acc: Record<string, number>, genre: string) => {
@@ -41,15 +44,13 @@ export async function GET(req: NextRequest) {
       return acc;
     }, {});
 
-    // 4. making final list by sorting
+    // final sorted list
     const sortedGenres = (Object.entries(genreCounts) as [string, number][])
       .sort(([, a], [, b]) => b - a)
       .slice(0, 10)
       .map(([name, count]) => ({ name, count }));
 
-
     return NextResponse.json(sortedGenres);
-
   } catch (error) {
     console.error("Internal Server Error:", error);
     return NextResponse.json({ error: 'An internal error occurred' }, { status: 500 });

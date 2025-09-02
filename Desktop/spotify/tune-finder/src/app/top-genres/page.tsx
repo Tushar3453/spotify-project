@@ -1,7 +1,3 @@
-// ===================================================================
-// FILE 1: src/app/top-genres/page.tsx
-// Is file ka poora content is code se replace karein.
-// ===================================================================
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -17,7 +13,7 @@ interface Genre {
 export default function TopGenresPage() {
     type TimeRange = 'short_term' | 'medium_term' | 'long_term';
 
-    const { data: session, status } = useSession();
+    const { status } = useSession();
     const [genres, setGenres] = useState<Genre[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [activeRange, setActiveRange] = useState<TimeRange>('short_term');

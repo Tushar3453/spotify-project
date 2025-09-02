@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSession, signIn } from 'next-auth/react';
+import Image from 'next/image';
 
 interface Track {
     rank: number;
@@ -15,7 +16,7 @@ interface Track {
 type TimeRange = 'short_term' | 'medium_term' | 'long_term';
 
 export default function TopTracksPage() {
-    const { data: session, status } = useSession();
+    const { status } = useSession();
     const [tracks, setTracks] = useState<Track[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [activeRange, setActiveRange] = useState<TimeRange>('short_term');
@@ -80,8 +81,8 @@ export default function TopTracksPage() {
         <button
             onClick={() => setActiveRange(range)}
             className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors ${activeRange === range
-                ? 'bg-green-500 text-white'
-                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    ? 'bg-green-500 text-white'
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                 }`}
         >
             {label}
@@ -109,7 +110,7 @@ export default function TopTracksPage() {
             <div className="max-w-5xl mx-auto px-4 pt-8 sm:pt-12 pb-12 sm:pb-20">
                 <header className="text-center mb-10">
                     <h1 className="text-4xl sm:text-5xl font-bold tracking-tight">Your Top Tracks</h1>
-                    <p className="text-gray-400 mt-2">The songs you've had on repeat.</p>
+                    <p className="text-gray-400 mt-2">The songs you&apos;ve had on repeat.</p>
                 </header>
 
                 <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mb-8">
@@ -142,7 +143,7 @@ export default function TopTracksPage() {
                             {tracks.map((track) => (
                                 <div key={track.id} className="flex items-center p-3 bg-gray-800/50 rounded-lg hover:bg-gray-800 transition-colors">
                                     <span className="text-lg font-bold text-gray-400 w-8 text-center">{track.rank}</span>
-                                    <img src={track.albumArt} alt={`${track.name} art`} className="w-12 h-12 rounded-md mx-4 object-cover" />
+                                    <Image src={track.albumArt} alt={`${track.name} art`} width={48} height={48} className="w-12 h-12 rounded-md mx-4 object-cover" />
                                     <div className="flex-grow">
                                         <p className="font-semibold text-white truncate">{track.name}</p>
                                         <p className="text-sm text-gray-400 truncate">{track.artist}</p>
@@ -162,4 +163,3 @@ export default function TopTracksPage() {
 
     );
 }
-

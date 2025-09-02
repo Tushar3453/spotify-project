@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSession, signIn } from 'next-auth/react';
+import Image from 'next/image';
 
 // --- TYPESCRIPT INTERFACE ---
 interface Artist {
@@ -17,7 +18,7 @@ interface Artist {
 export default function TopArtistsPage() {
     type TimeRange = 'short_term' | 'medium_term' | 'long_term';
     
-    const { data: session, status } = useSession();
+    const { status } = useSession();
     const [activeRange, setActiveRange] = useState<TimeRange>('short_term');
     const [artists, setArtists] = useState<Artist[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -95,7 +96,7 @@ export default function TopArtistsPage() {
                             {artists.map((artist) => (
                                 <a key={artist.id} href={artist.spotifyUrl} target="_blank" rel="noopener noreferrer" className="group block bg-gray-800 rounded-lg overflow-hidden transform hover:-translate-y-2 transition-transform duration-300">
                                     <div className="relative pt-[100%]"> {/* 1:1 Aspect Ratio */}
-                                        <img src={artist.imageUrl} alt={artist.name} className="absolute top-0 left-0 w-full h-full object-cover" />
+                                        <Image src={artist.imageUrl} alt={artist.name} fill className="object-cover" />
                                     </div>
                                     <div className="p-4">
                                         <p className="font-bold text-white truncate group-hover:text-green-400 transition-colors">{artist.rank}. {artist.name}</p>

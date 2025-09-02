@@ -1,6 +1,7 @@
 'use client'; 
 
 import React, { useState, useEffect } from 'react';
+import Image from "next/image";
 
 // --- TYPESCRIPT INTERFACE ---
 interface Song {
@@ -33,7 +34,7 @@ interface SearchResultItemProps {
 function SearchResultItem({ song, onSelect }: SearchResultItemProps) {
   return (
     <div className="flex items-center p-3 hover:bg-gray-600 rounded-md cursor-pointer" onClick={() => onSelect(song)}>
-      <img src={song.albumArt} alt={`${song.name} art`} className="w-10 h-10 rounded-sm mr-3 object-cover"/>
+      <Image src={song.albumArt} alt={`${song.name} art`} width={40} height={40} className="w-10 h-10 rounded-sm mr-3 object-cover"/>
       <div>
         <p className="font-semibold text-white text-sm">{song.name}</p>
         <p className="text-xs text-gray-400">{song.artist}</p>
@@ -126,14 +127,14 @@ export default function App() {
             <div className="space-y-2">
               {isLoading ? <div className="text-center py-10">Generating...</div> : recommendations.map(song => (
                 <div key={song.id} className="flex items-center p-3 bg-gray-900/50 rounded-lg">
-                   <img src={song.albumArt} alt={`${song.name} art`} className="w-12 h-12 rounded-md mr-4 object-cover" />
-                   <div>
+                   <Image src={song.albumArt} alt={`${song.name} art`} width={48} height={48} className="w-12 h-12 rounded-md mr-4 object-cover" />
+                  <div>
                      <p className="font-semibold text-white">{song.name}</p>
                      <p className="text-sm text-gray-400">{song.artist}</p>
-                   </div>
-                   <a href={song.spotifyUrl} target="_blank" rel="noopener noreferrer" className="ml-auto bg-gray-700 hover:bg-gray-600 text-white p-2 rounded-full transition-colors">
+                  </div>
+                  <a href={song.spotifyUrl} target="_blank" rel="noopener noreferrer" className="ml-auto bg-gray-700 hover:bg-gray-600 text-white p-2 rounded-full transition-colors">
                       <SpotifyIcon />
-                   </a>
+                  </a>
                 </div>
               ))}
             </div>

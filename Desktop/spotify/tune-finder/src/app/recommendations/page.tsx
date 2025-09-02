@@ -125,7 +125,7 @@ export default function App() {
           <main className="bg-gray-800 rounded-xl p-4 sm:p-6 mt-8">
             <h2 className="text-xl sm:text-2xl font-semibold mb-4">Recommendations for <span className="text-green-400">{selectedSong?.name}</span></h2>
             <div className="space-y-2">
-              {isLoading ? <div className="text-center py-10">Generating...</div> : recommendations.map(song => (
+              {isLoading ? <div className="text-center py-10">Loading...</div> : recommendations.map(song => (
                 <div key={song.id} className="flex items-center p-3 bg-gray-900/50 rounded-lg">
                    <Image src={song.albumArt} alt={`${song.name} art`} width={48} height={48} className="w-12 h-12 rounded-md mr-4 object-cover" />
                   <div>

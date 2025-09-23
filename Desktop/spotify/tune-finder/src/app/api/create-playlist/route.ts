@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
         }
         
         const playlistName = `My Top Tracks ${date} (${titleRangeText})`;
-        const description = `Your favorite tracks ${descriptionRangeText} as of ${date}. Created by TuneFinder.`;
+        const description = `Your favorite tracks ${descriptionRangeText} as of ${date}. Created by SoundSphere.`;
 
         const createPlaylistResponse = await fetch(`${API_BASE}/users/${userId}/playlists`, {
             method: "POST",

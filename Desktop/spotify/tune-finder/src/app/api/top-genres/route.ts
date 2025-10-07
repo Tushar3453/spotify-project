@@ -23,6 +23,7 @@ export async function GET(req: NextRequest) {
       headers: {
         Authorization: `Bearer ${token.accessToken}`,
       },
+      next: { revalidate: 3600 },
     });
 
     if (!response.ok) {

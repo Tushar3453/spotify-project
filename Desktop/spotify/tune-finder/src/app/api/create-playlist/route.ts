@@ -5,14 +5,22 @@ import UserTopTracks from '@/models/UserTopTracks';
 
 const API_BASE = `https://api.spotify.com/v1`;
 
+interface Track {
+    id: string;
+    name: string;
+    artist: string;
+    albumArt: string;
+    rank: number;
+}
+
 export async function POST(req: NextRequest) {
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
 
     if (!token || !token.accessToken || !token.sub) {
         return NextResponse.json({ error: 'User not authenticated' }, { status: 401 });
     }
-    
-    const { tracks, timeRange } = await req.json();
+
+    const { tracks, timeRange, name: customName, description: customDescription } = await req.json();
 
     if (!tracks || tracks.length === 0) {
         return NextResponse.json({ error: 'No tracks provided' }, { status: 400 });
@@ -23,39 +31,53 @@ export async function POST(req: NextRequest) {
     try {
         await dbConnect();
 
-        // 1. Create Playlist on Spotify
         const authHeader = {
             Authorization: `Bearer ${token.accessToken}`,
             'Content-Type': 'application/json',
         };
 
         const date = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
-        let titleRangeText = timeRange === 'short_term' ? "Last 4 Weeks" : timeRange === 'medium_term' ? "Last 6 Months" : "All Time";
-        
-        const playlistName = `My Top Tracks ${date} (${titleRangeText})`;
-        const description = `Your favorite tracks created by SoundSphere.`;
 
+        const titleRangeText = timeRange === 'short_term' ? "Last 4 Weeks" : timeRange === 'medium_term' ? "Last 6 Months" : "All Time";
+
+        const playlistName = customName || `My Top Tracks ${date} (${titleRangeText})`;
+        const playlistDescription = customDescription || `Your favorite tracks created by SoundSphere.`;
+
+        // 1. Create Playlist on Spotify
         const createPlaylistResponse = await fetch(`${API_BASE}/users/${userId}/playlists`, {
             method: "POST",
             headers: authHeader,
-            body: JSON.stringify({ name: playlistName, description, public: false }),
+            body: JSON.stringify({
+                name: playlistName,
+                description: playlistDescription,
+                public: false,
+            }),
         });
 
-        if (!createPlaylistResponse.ok) throw new Error("Failed to create playlist on Spotify");
+        if (!createPlaylistResponse.ok) {
+            console.error("Spotify API Error:", await createPlaylistResponse.text());
+            throw new Error("Failed to create playlist on Spotify");
+        }
 
         const newPlaylist = await createPlaylistResponse.json();
-        
-        // Add Tracks to Spotify Playlist
-        const trackUris = tracks.map((track: any) => `spotify:track:${track.id}`);
-        await fetch(`${API_BASE}/playlists/${newPlaylist.id}/tracks`, {
+
+        // 2. Add Tracks
+        const trackUris = tracks.map((track: Track) => `spotify:track:${track.id}`);
+
+        const addTracksResponse = await fetch(`${API_BASE}/playlists/${newPlaylist.id}/tracks`, {
             method: "POST",
             headers: authHeader,
-            body: JSON.stringify({ uris: trackUris }),
+            body: JSON.stringify({
+                uris: trackUris,
+            }),
         });
 
-        // 2. SAVE SNAPSHOT TO MONGODB (The missing link!)
-        // We format tracks to match our Schema
-        const dbTracks = tracks.map((t: any) => ({
+        if (!addTracksResponse.ok) {
+            console.error("Failed to add tracks:", await addTracksResponse.text());
+        }
+
+        // 3. Save Snapshot to DB
+        const dbTracks = tracks.map((t: Track) => ({
             trackId: t.id,
             name: t.name,
             artist: t.artist,
@@ -69,11 +91,11 @@ export async function POST(req: NextRequest) {
             tracks: dbTracks,
             lastUpdated: new Date()
         });
+        console.log("Playlist saved in db");
 
-        console.log("Snapshot saved in db");
-        return NextResponse.json({ 
-            message: "Playlist created and snapshot saved!", 
-            playlistUrl: newPlaylist.external_urls.spotify 
+        return NextResponse.json({
+            message: "Playlist created successfully!",
+            playlistUrl: newPlaylist.external_urls.spotify
         });
 
     } catch (error) {

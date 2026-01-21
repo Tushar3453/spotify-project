@@ -5,6 +5,40 @@ import UserTopTracks from '@/models/UserTopTracks';
 
 const TOP_TRACKS_ENDPOINT = `https://api.spotify.com/v1/me/top/tracks`;
 
+// --- Interfaces for Spotify API Data ---
+interface SpotifyImage {
+  url: string;
+}
+
+interface SpotifyArtist {
+  name: string;
+}
+
+interface SpotifyAlbum {
+  images: SpotifyImage[];
+}
+
+interface SpotifyTrack {
+  id: string;
+  name: string;
+  artists: SpotifyArtist[];
+  album: SpotifyAlbum;
+  external_urls: { spotify: string };
+}
+
+interface SpotifyTopTracksResponse {
+  items: SpotifyTrack[];
+}
+
+// --- Interface for Database Track Data ---
+interface DBTrack {
+  trackId: string;
+  name: string;
+  rank: number;
+  artist: string;
+  albumArt: string;
+}
+
 export async function GET(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
 
@@ -20,7 +54,7 @@ export async function GET(req: NextRequest) {
   await dbConnect();
 
   try {
-    // CASE 1: Fetch Specific History Snapshot (When user selects from dropdown)
+    // CASE 1: Fetch Specific History Snapshot
     if (historyId) {
       const historicalData = await UserTopTracks.findById(historyId);
       
@@ -28,57 +62,56 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: 'History record not found' }, { status: 404 });
       }
 
-      // Format DB data to match frontend interface
-      const formattedTracks = historicalData.tracks.map((t: any) => ({
+      const formattedTracks = historicalData.tracks.map((t: DBTrack) => ({
         id: t.trackId,
         name: t.name,
         rank: t.rank,
         artist: t.artist,
         albumArt: t.albumArt,
-        spotifyUrl: `https://open.spotify.com/track/$${t.trackId}`,
-        rankChange: 'same' // History views don't show rank changes relative to themselves
+        spotifyUrl: `https://open.spotify.com/track/${t.trackId}`,
+        rankChange: 'same'
       }));
 
       return NextResponse.json(formattedTracks);
     }
 
-    // CASE 2: Live Data with Ranking Comparison (Default view)
+    // CASE 2: Live Data with Ranking Comparison
     
     // 2a. Fetch Live Data from Spotify
     const response = await fetch(`${TOP_TRACKS_ENDPOINT}?time_range=${timeRange}&limit=50`, {
       headers: { Authorization: `Bearer ${token.accessToken}` },
-      next: { revalidate: 3600 } // Cache for 1 hour
+      next: { revalidate: 3600 }
     });
 
     if (!response.ok) {
         return NextResponse.json({ error: 'Failed to fetch from Spotify' }, { status: response.status });
     }
 
-    const data = await response.json();
+    const data: SpotifyTopTracksResponse = await response.json();
 
-    // 2b. Fetch Latest Snapshot from DB for comparison
+    // 2b. Fetch Latest Snapshot from DB
     const previousEntry = await UserTopTracks.findOne({
         userId,
         timeRange
-    }).sort({ lastUpdated: -1 }); // Get the most recent one
+    }).sort({ lastUpdated: -1 });
 
-    // Create a Map for O(1) lookup: trackId -> previousRank
-    const previousRanks = new Map();
+    const previousRanks = new Map<string, number>();
+    
     if (previousEntry && previousEntry.tracks) {
-        previousEntry.tracks.forEach((t: any) => {
+        previousEntry.tracks.forEach((t: DBTrack) => {
             previousRanks.set(t.trackId, t.rank);
         });
     }
 
-    // 2c. Process Live Data & Calculate Rank Changes
-    const tracks = data.items.map((item: any, index: number) => {
+    // 2c. Process Live Data
+    const tracks = data.items.map((item: SpotifyTrack, index: number) => {
       const currentRank = index + 1;
       const previousRank = previousRanks.get(item.id);
       
       let rankChange = 'new';
       if (previousRank) {
-        if (currentRank < previousRank) rankChange = 'up';       // Rank improved (e.g., 5 -> 2)
-        else if (currentRank > previousRank) rankChange = 'down'; // Rank dropped (e.g., 2 -> 5)
+        if (currentRank < previousRank) rankChange = 'up';
+        else if (currentRank > previousRank) rankChange = 'down';
         else rankChange = 'same';
       }
 
@@ -86,7 +119,7 @@ export async function GET(req: NextRequest) {
         rank: currentRank,
         id: item.id,
         name: item.name,
-        artist: item.artists.map((a: any) => a.name).join(', '),
+        artist: item.artists.map((a: SpotifyArtist) => a.name).join(', '),
         albumArt: item.album.images[0]?.url,
         spotifyUrl: item.external_urls.spotify,
         rankChange: rankChange 

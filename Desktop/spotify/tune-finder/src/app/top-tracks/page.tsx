@@ -35,6 +35,12 @@ export default function TopTracksPage() {
     const [isCreatingPlaylist, setIsCreatingPlaylist] = useState(false);
     const [playlistUrl, setPlaylistUrl] = useState<string | null>(null);
 
+    // --- STATE FOR MODAL & AI ---
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [playlistName, setPlaylistName] = useState('');
+    const [playlistDesc, setPlaylistDesc] = useState('');
+    const [isAiGenerating, setIsAiGenerating] = useState(false);
+
     // Fetch available history snapshots
     const fetchHistoryDates = useCallback(() => {
         if (!session?.accessToken) return;
@@ -83,10 +89,44 @@ export default function TopTracksPage() {
         }
     }, [activeRange, selectedHistoryId, status, session?.accessToken]);
 
+    // --- OPEN MODAL WITH DEFAULT VALUES ---
+    const openModal = () => {
+        const date = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+        const rangeLabel = activeRange === 'short_term' ? 'Last 4 Weeks' : activeRange === 'medium_term' ? 'Last 6 Months' : 'All Time';
+        
+        setPlaylistName(`My Top Tracks - ${date} (${rangeLabel})`);
+        setPlaylistDesc(`My most played tracks from the ${rangeLabel.toLowerCase()}.`);
+        setPlaylistUrl(null);
+        setIsModalOpen(true);
+    };
+
+    // --- CALL CLOUDFLARE AI ---
+    const generateAiDetails = async () => {
+        setIsAiGenerating(true);
+        try {
+            // We send the top 20 tracks to AI for context
+            const res = await fetch('/api/ai/generate-details', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tracks: tracks.slice(0, 20) }),
+            });
+            
+            const data = await res.json();
+            
+            if (data.name) setPlaylistName(data.name);
+            if (data.description) setPlaylistDesc(data.description);
+            
+        } catch (err) {
+            console.error("AI Generation failed", err);
+        } finally {
+            setIsAiGenerating(false);
+        }
+    };
+
     const handleCreatePlaylist = async () => {
         if (tracks.length === 0 || !session?.accessToken) return;
         setIsCreatingPlaylist(true);
-        setPlaylistUrl(null); // Reset previous URL if any
+        // We don't clear playlistUrl here so it shows up after modal closes
 
         try {
             const response = await fetch('/api/create-playlist', {
@@ -97,7 +137,9 @@ export default function TopTracksPage() {
                 },
                 body: JSON.stringify({
                     tracks: tracks,
-                    timeRange: activeRange
+                    timeRange: activeRange,
+                    name: playlistName, // Sending custom name
+                    description: playlistDesc // Sending custom desc
                 }),
             });
 
@@ -107,13 +149,12 @@ export default function TopTracksPage() {
 
             const data = await response.json();
 
-            // Set the playlist URL from the backend response
             if (data.playlistUrl) {
                 setPlaylistUrl(data.playlistUrl);
             }
 
-            // Refresh history list since a new snapshot was just created
             fetchHistoryDates();
+            setIsModalOpen(false); // Close modal on success
 
         } catch (error) {
             console.error("Playlist creation failed:", error);
@@ -219,16 +260,17 @@ export default function TopTracksPage() {
                             )}
                         </div>
 
+                        {/* Create Playlist Button (OPENS MODAL) */}
                         <button
-                            onClick={handleCreatePlaylist}
-                            disabled={isCreatingPlaylist || tracks.length === 0 || selectedHistoryId !== ''}
+                            onClick={openModal} // Changed from handleCreatePlaylist
+                            disabled={tracks.length === 0 || selectedHistoryId !== ''}
                             className={`bg-blue-500 text-white font-bold py-2 px-6 rounded-full transition-colors 
                                 ${selectedHistoryId !== ''
                                     ? 'bg-gray-600 opacity-50 cursor-not-allowed'
                                     : 'hover:bg-blue-600'
                                 }`}
                         >
-                            {isCreatingPlaylist ? 'Saving...' : 'Create Playlist'}
+                            Create Playlist
                         </button>
                     </div>
                 </div>
@@ -239,6 +281,88 @@ export default function TopTracksPage() {
                         <a href={playlistUrl} target="_blank" rel="noopener noreferrer" className="font-bold underline hover:text-white">View on Spotify</a>
                     </div>
                 )}
+
+                {/* --- MODAL POPUP --- */}
+                {isModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                        <div className="bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+                            {/* Modal Header */}
+                            <div className="bg-gray-800/50 px-6 py-4 border-b border-gray-700 flex justify-between items-center">
+                                <h2 className="text-xl font-bold text-white">Save Playlist</h2>
+                                <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-white">
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                </button>
+                            </div>
+
+                            {/* Modal Body */}
+                            <div className="p-6 space-y-5">
+                                {/* Name Input Section */}
+                                <div>
+                                    <div className="flex justify-between items-center mb-2">
+                                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Playlist Name</label>
+                                        {/* AI BUTTON */}
+                                        <button 
+                                            onClick={generateAiDetails}
+                                            disabled={isAiGenerating}
+                                            className="flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs px-3 py-1.5 rounded-md font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {isAiGenerating ? (
+                                                <svg className="animate-spin h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                            ) : (
+                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                            )}
+                                            {isAiGenerating ? 'Thinking...' : 'Generate with AI'}
+                                        </button>
+                                    </div>
+                                    <input 
+                                        type="text" 
+                                        value={playlistName}
+                                        onChange={(e) => setPlaylistName(e.target.value)}
+                                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all"
+                                        placeholder="My Top Tracks..."
+                                    />
+                                </div>
+
+                                {/* Description Input */}
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Description</label>
+                                    <textarea 
+                                        rows={3}
+                                        value={playlistDesc}
+                                        onChange={(e) => setPlaylistDesc(e.target.value)}
+                                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all resize-none"
+                                        placeholder="Add a description..."
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Modal Footer */}
+                            <div className="px-6 py-4 bg-gray-800/50 border-t border-gray-700 flex gap-3">
+                                <button 
+                                    onClick={() => setIsModalOpen(false)}
+                                    className="flex-1 px-4 py-3 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-xl transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    onClick={handleCreatePlaylist}
+                                    disabled={isCreatingPlaylist}
+                                    className="flex-1 px-4 py-3 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl transition-colors flex justify-center items-center"
+                                >
+                                    {isCreatingPlaylist ? (
+                                        <>
+                                            <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                            Saving...
+                                        </>
+                                    ) : (
+                                        'Save to Spotify'
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
 
                 <main>
                     {isLoading ? (

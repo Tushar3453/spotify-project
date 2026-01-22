@@ -47,16 +47,9 @@ export async function POST(req: NextRequest) {
         }
         
         const data = JSON.parse(cleanJson);
-        
-        // --- BRANDING ADDITION FIX ---
-        // Logic: 
-        // 1. Trim spaces.
-        // 2. .replace(/\.$/, '') -> Agar end mein already dot hai, toh hata do.
-        // 3. Phir explicitly ". Created by SoundSphere." add karo.
-        // Result: Hamesha "Description text. Created by SoundSphere." hi banega.
-        
         const cleanDesc = data.description ? data.description.trim().replace(/\.$/, '') : "A custom playlist";
         data.description = `${cleanDesc}. Created by SoundSphere.`;
+        console.log(data);
 
         return NextResponse.json(data);
 

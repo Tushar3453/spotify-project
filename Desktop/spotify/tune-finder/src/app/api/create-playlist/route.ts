@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     if (!token || !token.accessToken || !token.sub) {
         return NextResponse.json({ error: 'User not authenticated' }, { status: 401 });
     }
-    
+
     // Explicitly cast the body to the interface to remove 'any'
     const body = await req.json() as CreatePlaylistBody;
     const { tracks, timeRange, name: customName, description: customDescription } = body;
@@ -47,9 +47,9 @@ export async function POST(req: NextRequest) {
         };
 
         const date = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
-        
+
         const titleRangeText = timeRange === 'short_term' ? "Last 4 Weeks" : timeRange === 'medium_term' ? "Last 6 Months" : "All Time";
-        
+
         const playlistName = customName || `My Top Tracks ${date} (${titleRangeText})`;
         const playlistDescription = customDescription || `Your favorite tracks created by SoundSphere.`;
 
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
             body: JSON.stringify({
                 name: playlistName,
                 description: playlistDescription,
-                public: false, 
+                public: false,
             }),
         });
 
@@ -70,10 +70,10 @@ export async function POST(req: NextRequest) {
         }
 
         const newPlaylist = await createPlaylistResponse.json();
-        
+
         // 2. Add Tracks
         const trackUris = tracks.map((track) => `spotify:track:${track.id}`);
-        
+
         const addTracksResponse = await fetch(`${API_BASE}/playlists/${newPlaylist.id}/tracks`, {
             method: "POST",
             headers: authHeader,
@@ -103,9 +103,9 @@ export async function POST(req: NextRequest) {
         });
         console.log("playlist saved in db");
 
-        return NextResponse.json({ 
-            message: "Playlist created successfully!", 
-            playlistUrl: newPlaylist.external_urls.spotify 
+        return NextResponse.json({
+            message: "Playlist created successfully!",
+            playlistUrl: newPlaylist.external_urls.spotify
         });
 
     } catch (error) {

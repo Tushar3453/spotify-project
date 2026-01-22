@@ -93,9 +93,9 @@ export default function TopTracksPage() {
     const openModal = () => {
         const date = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
         const rangeLabel = activeRange === 'short_term' ? 'Last 4 Weeks' : activeRange === 'medium_term' ? 'Last 6 Months' : 'All Time';
-        
+
         setPlaylistName(`My Top Tracks - ${date} (${rangeLabel})`);
-        setPlaylistDesc(`My most played tracks from the ${rangeLabel.toLowerCase()}.`);
+        setPlaylistDesc(`My most played tracks from the ${rangeLabel.toLowerCase()}. Created by SoundSphere`);
         setPlaylistUrl(null);
         setIsModalOpen(true);
     };
@@ -110,12 +110,12 @@ export default function TopTracksPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ tracks: tracks.slice(0, 20) }),
             });
-            
+
             const data = await res.json();
-            
+
             if (data.name) setPlaylistName(data.name);
             if (data.description) setPlaylistDesc(data.description);
-            
+
         } catch (err) {
             console.error("AI Generation failed", err);
         } finally {
@@ -301,7 +301,7 @@ export default function TopTracksPage() {
                                     <div className="flex justify-between items-center mb-2">
                                         <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Playlist Name</label>
                                         {/* AI BUTTON */}
-                                        <button 
+                                        <button
                                             onClick={generateAiDetails}
                                             disabled={isAiGenerating}
                                             className="flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs px-3 py-1.5 rounded-md font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -314,8 +314,8 @@ export default function TopTracksPage() {
                                             {isAiGenerating ? 'Thinking...' : 'Generate with AI'}
                                         </button>
                                     </div>
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         value={playlistName}
                                         onChange={(e) => setPlaylistName(e.target.value)}
                                         className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all"
@@ -326,7 +326,7 @@ export default function TopTracksPage() {
                                 {/* Description Input */}
                                 <div>
                                     <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Description</label>
-                                    <textarea 
+                                    <textarea
                                         rows={3}
                                         value={playlistDesc}
                                         onChange={(e) => setPlaylistDesc(e.target.value)}
@@ -338,13 +338,13 @@ export default function TopTracksPage() {
 
                             {/* Modal Footer */}
                             <div className="px-6 py-4 bg-gray-800/50 border-t border-gray-700 flex gap-3">
-                                <button 
+                                <button
                                     onClick={() => setIsModalOpen(false)}
                                     className="flex-1 px-4 py-3 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-xl transition-colors"
                                 >
                                     Cancel
                                 </button>
-                                <button 
+                                <button
                                     onClick={handleCreatePlaylist}
                                     disabled={isCreatingPlaylist}
                                     className="flex-1 px-4 py-3 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl transition-colors flex justify-center items-center"

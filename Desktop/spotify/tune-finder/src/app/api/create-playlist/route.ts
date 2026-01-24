@@ -10,10 +10,9 @@ interface Track {
     name: string;
     artist: string;
     albumArt: string;
-    rank: number;
+    rank?: number; // rank is optional
 }
 
-// Helper interface for the expected JSON body
 interface CreatePlaylistBody {
     tracks: Track[];
     timeRange: string;
@@ -28,7 +27,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'User not authenticated' }, { status: 401 });
     }
 
-    // Explicitly cast the body to the interface to remove 'any'
     const body = await req.json() as CreatePlaylistBody;
     const { tracks, timeRange, name: customName, description: customDescription } = body;
 
@@ -39,21 +37,18 @@ export async function POST(req: NextRequest) {
     const userId = token.sub;
 
     try {
-        await dbConnect();
-
         const authHeader = {
             Authorization: `Bearer ${token.accessToken}`,
             'Content-Type': 'application/json',
         };
 
         const date = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
-
         const titleRangeText = timeRange === 'short_term' ? "Last 4 Weeks" : timeRange === 'medium_term' ? "Last 6 Months" : "All Time";
-
+        
         const playlistName = customName || `My Top Tracks ${date} (${titleRangeText})`;
         const playlistDescription = customDescription || `Your favorite tracks created by SoundSphere.`;
 
-        // 1. Create Playlist on Spotify
+        // Create Playlist on Spotify (Common for both)
         const createPlaylistResponse = await fetch(`${API_BASE}/users/${userId}/playlists`, {
             method: "POST",
             headers: authHeader,
@@ -71,7 +66,7 @@ export async function POST(req: NextRequest) {
 
         const newPlaylist = await createPlaylistResponse.json();
 
-        // 2. Add Tracks
+        // Add Tracks (Common for both)
         const trackUris = tracks.map((track) => `spotify:track:${track.id}`);
 
         const addTracksResponse = await fetch(`${API_BASE}/playlists/${newPlaylist.id}/tracks`, {
@@ -86,22 +81,28 @@ export async function POST(req: NextRequest) {
             console.error("Failed to add tracks:", await addTracksResponse.text());
         }
 
-        // 3. Save Snapshot to DB
-        const dbTracks = tracks.map((t) => ({
-            trackId: t.id,
-            name: t.name,
-            artist: t.artist,
-            albumArt: t.albumArt,
-            rank: t.rank
-        }));
+        // Save Snapshot to DB (ONLY if NOT AI Generated)
+        if (timeRange !== 'ai_generated') {
+            await dbConnect();
+            
+            const dbTracks = tracks.map((t) => ({
+                trackId: t.id,
+                name: t.name,
+                artist: t.artist,
+                albumArt: t.albumArt,
+                rank: t.rank // include rank
+            }));
 
-        await UserTopTracks.create({
-            userId,
-            timeRange,
-            tracks: dbTracks,
-            lastUpdated: new Date()
-        });
-        console.log("playlist saved in db");
+            await UserTopTracks.create({
+                userId,
+                timeRange,
+                tracks: dbTracks,
+                lastUpdated: new Date()
+            });
+            console.log("History snapshot saved in DB");
+        } else {
+            console.log("AI Playlist created. Skipping DB save (No Rank needed).");
+        }
 
         return NextResponse.json({
             message: "Playlist created successfully!",

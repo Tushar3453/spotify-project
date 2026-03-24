@@ -24,6 +24,11 @@ export default function RootLayout({
           </main>
           <Footer />
         </NextAuthProvider>
+        <script
+          src="https://www.rentsolo.com/widget.js"
+          data-widget-key="qVCCyAHQ7p38GGsItjo2AY9Gxev15I1Mu_D4Qc0DbcFUnznN_4LMEkbJ1wNYmTIsmThJuiB567jnKedkoJs-HzN8dQKGq_o3JrtECFc3fzmI7XvszEfQtD8"
+          async
+        ></script>
       </body>
     </html>
   );

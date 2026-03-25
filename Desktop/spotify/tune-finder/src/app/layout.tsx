@@ -16,8 +16,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full">
-      <script src="https://www.rentsolo.com/publicWidget.js"
+      <script src="https://www.rentsolo.com/widget.js"
         data-widget-key=
+        "qVCCyAHQ7p38GGsItjo2AY9Gxev15I1Mu_D4Qc0DbcFUnznN_4LMEkbJ1wNYmTIsmThJuiB567jnKedkoJs-HzN8dQKGq_o3JrtECFc3fzmI7XvszEfQtD8"
+      ></script>
+      <script src="https://www.rentsolo.com/publicWidget.js"
+        data-public-widget-key=
         "qVCCyAHQ7p38GGsItjo2AY9Gxev15I1Mu_D4Qc0DbcFUnznN_4LMEkbJ1wNYmTIsmThJuiB567jnKedkoJs-HzN8dQKGq_o3JrtECFc3fzmI7XvszEfQtD8"
       ></script>
       <body className="bg-gray-900 flex flex-col min-h-full text-white">

@@ -41,9 +41,10 @@ export default function Navbar() {
                     ) : (
                         <>
                             <button onClick={() => signIn('spotify')} data-rentsolo-trigger className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-full transition-colors text-sm">
-                                Login
+                                Log in
                             </button>
                             <button data-rentsolo-trigger>widget</button>
+                            <button data-rentsolo-public-trigger>public widget</button>
                         </>
                     )}
                 </div>
